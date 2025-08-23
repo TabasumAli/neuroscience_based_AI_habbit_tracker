@@ -153,7 +153,7 @@ if habits:
        with col3:
            if st.button("Next", key="next", disabled=current_page == total_pages):
                st.session_state.page = min(total_pages, current_page + 1)
-   else:
+else:
        st.write("No habits yet. Add a habit above to start tracking!")
 
    # --- Progress Dashboard ---
