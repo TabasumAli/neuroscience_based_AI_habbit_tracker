@@ -76,32 +76,29 @@
 #         st.warning("Are you sure? Click again to confirm clearing all habits and logs.")
 
 import streamlit as st
-from app.database.models import Base
-from app.database.session import engine
+from app.database.base import Base
+from app.database.session import engine, SessionLocal
 from app.services.habit_service import HabitService
 from app.services.log_service import LogService
 from app.services.ai_service import generate_affirmation
 from app.utils.viz import plot_habits
 import uuid
+from sqlalchemy import inspect
 
-# Initialize user_id in session state
+# Initialize session state
 if 'user_id' not in st.session_state:
-    # Option 1: Generate random UUID for each session
     st.session_state.user_id = str(uuid.uuid4())
-    # Option 2: Ask user for a nickname (uncomment to use)
-    # user_nickname = st.text_input("Enter your nickname to start tracking habits:")
-    # if user_nickname:
-    #     st.session_state.user_id = user_nickname
-    # else:
-    #     st.write("Please enter a nickname to continue.")
-    #     st.stop()
+if 'db_initialized' not in st.session_state:
+    # Check if tables exist before creating
+    inspector = inspect(engine)
+    required_tables = {'habits', 'habit_logs', 'ai_insights'}
+    existing_tables = set(inspector.get_table_names())
+    if not required_tables.issubset(existing_tables):
+        Base.metadata.create_all(engine)
+    st.session_state.db_initialized = True
 
 # Display user_id for demo purposes (optional)
 st.write(f"User ID: {st.session_state.user_id}")
-
-# Drop and recreate tables to ensure latest schema (includes user_id)
-Base.metadata.drop_all(engine)
-Base.metadata.create_all(engine)
 
 st.title("🧠 Neuroscience-Informed Habit Tracker")
 
@@ -110,10 +107,11 @@ log_service = LogService()
 
 # --- Add Habit ---
 st.subheader("Add a New Habit")
-habit_name = st.text_input("Habit Name")
+habit_name = st.text_input("Habit Name", key="habit_input")
 if st.button("Add Habit"):
     if habit_name.strip():
         habit_service.add_habit(habit_name.strip(), st.session_state.user_id)
+        st.session_state.habit_input = ""  # Clear input after adding
         st.success(f"Habit '{habit_name}' added!")
 
 # --- Fetch Habits ---
@@ -132,8 +130,8 @@ if habits:
 
     for habit in paginated_habits:
         st.write(f"**{habit.habit_name}** (Current Streak: {habit.streak} days)")
-        status = st.radio(f"{habit.habit_name}", ["Done", "Skip"], key=habit.id)
-        if st.button(f"Log {habit.habit_name}", key=f"log-{habit.id}"):
+        status = st.radio(f"Status for {habit.habit_name}", ["Done", "Skip"], key=f"radio-{st.session_state.user_id}-{habit.id}")
+        if st.button(f"Log {habit.habit_name}", key=f"log-{st.session_state.user_id}-{habit.id}"):
             message = generate_affirmation(habit.habit_name, status)
             log_service.log_habit(habit.id, status, message, st.session_state.user_id)
             st.info(message)
@@ -169,4 +167,3 @@ if st.button("Clear All Data"):
     else:
         st.warning("Are you sure? Click again to confirm clearing all your habits and logs.")
         st.session_state.confirm_clear = True
-#         st.session_state.confirm_clear = True
