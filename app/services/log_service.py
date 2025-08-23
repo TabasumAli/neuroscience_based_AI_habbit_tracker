@@ -46,40 +46,62 @@
 from sqlalchemy import func
 from app.database.models import Habit, HabitLog, AIInsight
 from app.database.session import SessionLocal
-from datetime import date, timedelta
+from datetime import date
+import streamlit as st
 
 class LogService:
     def __init__(self):
         self.session = SessionLocal()
 
     def log_habit(self, habit_id, status, message, user_id):
-        log = HabitLog(habit_id=habit_id, date=date.today(), status=status, user_id=user_id)
-        self.session.add(log)
-        self.session.commit()
+        try:
+            # Create new habit log
+            log = HabitLog(habit_id=habit_id, date=date.today(), status=status, user_id=user_id)
+            self.session.add(log)
 
-        # Update habit streak
-        habit = self.session.query(Habit).get(habit_id)
-        if status == "Done":
-            habit.streak += 1
-        else:
-            habit.streak = 0
-        self.session.commit()
+            # Update habit streak
+            habit = self.session.query(Habit).filter(Habit.id == habit_id, Habit.user_id == user_id).first()
+            if habit:
+                if status == "Done":
+                    habit.streak += 1
+                else:
+                    habit.streak = 0
+                self.session.add(habit)
 
-        # Store AI insight if message exists
-        if message:
-            insight = AIInsight(habit_id=habit_id, insight=message, user_id=user_id)
-            self.session.add(insight)
+            # Store AI insight if message exists
+            if message:
+                insight = AIInsight(habit_id=habit_id, insight=message, user_id=user_id)
+                self.session.add(insight)
+
+            # Commit all changes
             self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            st.error(f"Error logging habit: {str(e)}")
+            raise
 
     def get_logs(self, user_id):
-        return self.session.query(HabitLog).join(HabitLog.habit).filter(HabitLog.user_id == user_id).all()
+        try:
+            return self.session.query(HabitLog).join(HabitLog.habit).filter(HabitLog.user_id == user_id).all()
+        except Exception as e:
+            st.error(f"Error fetching logs: {str(e)}")
+            return []
 
     def get_streak(self, habit_id, user_id):
-        habit = self.session.query(Habit).filter(Habit.id == habit_id, Habit.user_id == user_id).first()
-        return habit.streak if habit else 0
+        try:
+            habit = self.session.query(Habit).filter(Habit.id == habit_id, Habit.user_id == user_id).first()
+            return habit.streak if habit else 0
+        except Exception as e:
+            st.error(f"Error fetching streak: {str(e)}")
+            return 0
 
     def clear_all_data(self, user_id):
-        self.session.query(AIInsight).filter(AIInsight.user_id == user_id).delete()
-        self.session.query(HabitLog).filter(HabitLog.user_id == user_id).delete()
-        self.session.query(Habit).filter(Habit.user_id == user_id).delete()
-        self.session.commit()
+        try:
+            self.session.query(AIInsight).filter(AIInsight.user_id == user_id).delete()
+            self.session.query(HabitLog).filter(HabitLog.user_id == user_id).delete()
+            self.session.query(Habit).filter(Habit.user_id == user_id).delete()
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            st.error(f"Error clearing data: {str(e)}")
+            raise
