@@ -30,13 +30,13 @@
 
 from sqlalchemy import Column, Integer, String, Date, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from app.database.session import Base
+from app.database.base import Base
 from datetime import datetime
 
 class Habit(Base):
     __tablename__ = "habits"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, nullable=False, index=True)  # Add user_id
+    user_id = Column(String, nullable=False, index=True)
     habit_name = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     streak = Column(Integer, default=0)
@@ -46,7 +46,7 @@ class Habit(Base):
 class HabitLog(Base):
     __tablename__ = "habit_logs"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, nullable=False, index=True)  # Add user_id
+    user_id = Column(String, nullable=False, index=True)
     habit_id = Column(Integer, ForeignKey("habits.id"))
     date = Column(Date, nullable=False)
     status = Column(String, nullable=False)
@@ -55,7 +55,7 @@ class HabitLog(Base):
 class AIInsight(Base):
     __tablename__ = "ai_insights"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, nullable=False, index=True)  # Add user_id
+    user_id = Column(String, nullable=False, index=True)
     habit_id = Column(Integer, ForeignKey("habits.id"))
     insight = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
