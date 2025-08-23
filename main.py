@@ -75,20 +75,20 @@
 #     else:
 #         st.warning("Are you sure? Click again to confirm clearing all habits and logs.")
 
-   import streamlit as st
-   from app.database.base import Base
-   from app.database.session import engine, SessionLocal
-   from app.services.habit_service import HabitService
-   from app.services.log_service import LogService
-   from app.services.ai_service import generate_affirmation
-   from app.utils.viz import plot_habits
-   import uuid
-   from sqlalchemy import inspect
+ import streamlit as st
+ from app.database.base import Base
+ from app.database.session import engine, SessionLocal
+ from app.services.habit_service import HabitService
+ from app.services.log_service import LogService
+ from app.services.ai_service import generate_affirmation
+ from app.utils.viz import plot_habits
+ import uuid
+ from sqlalchemy import inspect
 
    # Initialize session state
-   if 'user_id' not in st.session_state:
+ if 'user_id' not in st.session_state:
        st.session_state.user_id = str(uuid.uuid4())
-   if 'db_initialized' not in st.session_state:
+ if 'db_initialized' not in st.session_state:
        # Check if habits table has user_id column
        inspector = inspect(engine)
        required_tables = {'habits', 'habit_logs', 'ai_insights'}
@@ -105,28 +105,28 @@
        st.session_state.db_initialized = True
 
    # Display user_id for demo purposes (optional)
-   st.write(f"User ID: {st.session_state.user_id}")
+ st.write(f"User ID: {st.session_state.user_id}")
 
-   st.title("🧠 Neuroscience-Informed Habit Tracker")
+ st.title("🧠 Neuroscience-Informed Habit Tracker")
 
-   habit_service = HabitService()
-   log_service = LogService()
+ habit_service = HabitService()
+ log_service = LogService()
 
-   # --- Add Habit ---
-   st.subheader("Add a New Habit")
-   habit_name = st.text_input("Habit Name", key="habit_input")
-   if st.button("Add Habit"):
+ # --- Add Habit ---
+ st.subheader("Add a New Habit")
+ habit_name = st.text_input("Habit Name", key="habit_input")
+ if st.button("Add Habit"):
        if habit_name.strip():
            habit_service.add_habit(habit_name.strip(), st.session_state.user_id)
            st.session_state.habit_input = ""  # Clear input after adding
            st.success(f"Habit '{habit_name}' added!")
 
    # --- Fetch Habits ---
-   habits = habit_service.get_habits(st.session_state.user_id)
+ habits = habit_service.get_habits(st.session_state.user_id)
 
    # --- Log Today's Habits ---
-   st.subheader("Log Today's Habits")
-   if habits:
+ st.subheader("Log Today's Habits")
+ if habits:
        habits_per_page = 5
        total_pages = (len(habits) + habits_per_page - 1) // habits_per_page
        current_page = st.session_state.get("page", 1)
@@ -157,16 +157,16 @@
        st.write("No habits yet. Add a habit above to start tracking!")
 
    # --- Progress Dashboard ---
-   st.subheader("Progress Dashboard")
-   logs = log_service.get_logs(st.session_state.user_id)
-   if logs:
+st.subheader("Progress Dashboard")
+logs = log_service.get_logs(st.session_state.user_id)
+if logs:
        st.plotly_chart(plot_habits(logs))
-   else:
+else:
        st.write("No logs yet. Start logging your habits to see progress!")
 
    # --- Clear All Data ---
-   st.subheader("Clear All Data")
-   if st.button("Clear All Data"):
+st.subheader("Clear All Data")
+if st.button("Clear All Data"):
        if st.session_state.get("confirm_clear", False):
            log_service.clear_all_data(st.session_state.user_id)
            st.session_state.confirm_clear = False
