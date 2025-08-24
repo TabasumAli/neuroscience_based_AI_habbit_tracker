@@ -20,7 +20,7 @@ def generate_affirmation(habit_name, status):
         response = client.chat.completions.create(
             model="openai/gpt-5-chat-latest",  # Using gpt-4o as specified
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=500,
+            max_tokens=2500,
         )
         message = response.choices[0].message.content.strip()
         return message
